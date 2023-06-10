@@ -1,12 +1,12 @@
 import { Walk, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
-import { Company, Office, model } from "../model";
+import { Company, Office, President, model } from "../model";
 
 describe("walkFromSpecification", () => {
   it("should generate a successor walk", () => {
-    const specification = model.given(Company).match((company, facts) => {
-      return facts.ofType(Office)
+    const specification = model.given(Company).match((company, facts) =>
+      facts.ofType(Office)
         .join(office => office.company, company)
-    }).specification;
+    ).specification;
 
     const walk = walkFromSpecification(specification);
 
@@ -16,11 +16,27 @@ describe("walkFromSpecification", () => {
     expect(walk).toEqual(expected);
   });
 
+  it("should generate a successor walk with two steps", () => {
+    const specification = model.given(Company).match((company, facts) =>
+      facts.ofType(President)
+        .join(president => president.office.company, company)
+    ).specification;
+
+    const walk = walkFromSpecification(specification);
+
+    const expected = walkFrom("Company")
+      .successor("company", "Office", x => x
+        .successor("office", "President")
+      )
+      .build();
+    expect(walk).toEqual(expected);
+  });
+
   it("should generate a predecessor walk", () => {
-    const specification = model.given(Office).match((office, facts) => {
-      return facts.ofType(Company)
+    const specification = model.given(Office).match((office, facts) =>
+      facts.ofType(Company)
         .join(company => company, office.company)
-    }).specification;
+    ).specification;
 
     const walk = walkFromSpecification(specification);
 

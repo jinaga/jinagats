@@ -1,4 +1,4 @@
-import { Specification } from "../specification/specification";
+import { Role, Specification } from "../specification/specification";
 
 export interface WalkRole {
   successorType: string;
@@ -56,25 +56,28 @@ export function walkFromSpecification(specification: Specification): Walk {
     return walk;
   }
   else {
-    if (condition.rolesLeft.length !== 1)
-      throw new Error("Path must have exactly one role on the left");
-    const role = condition.rolesLeft[0];
-
-    const walk: Walk = {
-      steps: [
-        {
-          direction: "successor",
-          role: {
-            successorType: match.unknown.type,
-            name: role.name,
-            predecessorType: label.type
-          },
-          next: {
-            steps: []
-          }
-        }
-      ]
-    };
-    return walk;
+    return walkRolesLeft(condition.rolesLeft, match.unknown.type, { steps: [] });
   }
+}
+
+function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
+  if (roles.length === 0) {
+    return next;
+  }
+  const role = roles[0];
+
+  const walk: Walk = {
+    steps: [
+      {
+        direction: "successor",
+        role: {
+          successorType: type,
+          name: role.name,
+          predecessorType: role.predecessorType
+        },
+        next: next
+      }
+    ]
+  };
+  return walkRolesLeft(roles.slice(1), role.predecessorType, walk);
 }
