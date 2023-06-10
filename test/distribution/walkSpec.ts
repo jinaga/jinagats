@@ -80,6 +80,25 @@ describe("walkFromSpecification", () => {
       .build();
     expect(walk).toEqual(expected);
   });
+
+  it("should generate a predecessor walk with two labels", () => {
+    const specification = model.given(President).match((president, facts) =>
+      facts.ofType(Office)
+        .join(office => office, president.office)
+        .selectMany(office => facts.ofType(Company)
+          .join(company => company, office.company)
+        )
+    ).specification;
+
+    const walk = walkFromSpecification(specification);
+
+    const expected = walkFrom("President")
+      .predecessor("office", "Office", x => x
+        .predecessor("company", "Company")
+      )
+      .build();
+    expect(walk).toEqual(expected);
+  });
 });
 
 class WalkBuilder {
