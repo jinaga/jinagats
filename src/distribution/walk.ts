@@ -31,39 +31,40 @@ export function walkFromSpecification(specification: Specification): Walk {
 
   if (condition.type !== "path")
     throw new Error("Condition must be a path");
-  if (condition.rolesRight.length !== 0) {
-    if (condition.rolesRight.length !== 1)
-      throw new Error("Path must have exactly one role on the right");
-    if (condition.rolesLeft.length !== 0)
-      throw new Error("Path must have no roles on the left");
-    const role = condition.rolesRight[0];
+    
+  return walkRolesLeft(condition.rolesLeft, match.unknown.type,
+    walkRolesRight(condition.rolesRight, label.type));
+}
 
-    const walk: Walk = {
-      steps: [
-        {
-          direction: "predecessor",
-          role: {
-            successorType: label.type,
-            name: role.name,
-            predecessorType: match.unknown.type
-          },
-          next: {
-            steps: []
-          }
-        }
-      ]
-    };
-    return walk;
+function walkRolesRight(roles: Role[], type: string): Walk {
+  if (roles.length === 0) {
+    return { steps: [] };
   }
-  else {
-    return walkRolesLeft(condition.rolesLeft, match.unknown.type, { steps: [] });
-  }
+
+  const role = roles[0];
+  const next = walkRolesRight(roles.slice(1), role.predecessorType);
+
+  const walk: Walk = {
+    steps: [
+      {
+        direction: "predecessor",
+        role: {
+          successorType: type,
+          name: role.name,
+          predecessorType: role.predecessorType
+        },
+        next: next
+      }
+    ]
+  };
+  return walk;
 }
 
 function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
   if (roles.length === 0) {
     return next;
   }
+
   const role = roles[0];
 
   const walk: Walk = {
