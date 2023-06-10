@@ -32,6 +32,25 @@ describe("walkFromSpecification", () => {
     expect(walk).toEqual(expected);
   });
 
+  it("should generate a successor walk with two labels", () => {
+    const specification = model.given(Company).match((company, facts) =>
+      facts.ofType(Office)
+        .join(office => office.company, company)
+        .selectMany(office => facts.ofType(President)
+          .join(president => president.office, office)
+        )
+    ).specification;
+
+    const walk = walkFromSpecification(specification);
+
+    const expected = walkFrom("Company")
+      .successor("company", "Office", x => x
+        .successor("office", "President")
+      )
+      .build();
+    expect(walk).toEqual(expected);
+  });
+
   it("should generate a predecessor walk", () => {
     const specification = model.given(Office).match((office, facts) =>
       facts.ofType(Company)
