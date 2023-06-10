@@ -31,26 +31,50 @@ export function walkFromSpecification(specification: Specification): Walk {
 
   if (condition.type !== "path")
     throw new Error("Condition must be a path");
-  if (condition.rolesRight.length !== 0)
-    throw new Error("Path must not have roles on the right");
-  if (condition.rolesLeft.length !== 1)
-    throw new Error("Path must have exactly one role on the left");
-  const role = condition.rolesLeft[0];
+  if (condition.rolesRight.length !== 0) {
+    if (condition.rolesRight.length !== 1)
+      throw new Error("Path must have exactly one role on the right");
+    if (condition.rolesLeft.length !== 0)
+      throw new Error("Path must have no roles on the left");
+    const role = condition.rolesRight[0];
 
-  const walk: Walk = {
-    steps: [
-      {
-        direction: "successor",
-        role: {
-          successorType: match.unknown.type,
-          name: role.name,
-          predecessorType: label.type
-        },
-        next: {
-          steps: []
+    const walk: Walk = {
+      steps: [
+        {
+          direction: "predecessor",
+          role: {
+            successorType: label.type,
+            name: role.name,
+            predecessorType: match.unknown.type
+          },
+          next: {
+            steps: []
+          }
         }
-      }
-    ]
-  };
-  return walk;
+      ]
+    };
+    return walk;
+  }
+  else {
+    if (condition.rolesLeft.length !== 1)
+      throw new Error("Path must have exactly one role on the left");
+    const role = condition.rolesLeft[0];
+
+    const walk: Walk = {
+      steps: [
+        {
+          direction: "successor",
+          role: {
+            successorType: match.unknown.type,
+            name: role.name,
+            predecessorType: label.type
+          },
+          next: {
+            steps: []
+          }
+        }
+      ]
+    };
+    return walk;
+  }
 }

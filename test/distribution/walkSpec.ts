@@ -15,6 +15,20 @@ describe("walkFromSpecification", () => {
       .build();
     expect(walk).toEqual(expected);
   });
+
+  it("should generate a predecessor walk", () => {
+    const specification = model.given(Office).match((office, facts) => {
+      return facts.ofType(Company)
+        .join(company => company, office.company)
+    }).specification;
+
+    const walk = walkFromSpecification(specification);
+
+    const expected = walkFrom("Office")
+      .predecessor("company", "Company")
+      .build();
+    expect(walk).toEqual(expected);
+  });
 });
 
 class WalkBuilder {
