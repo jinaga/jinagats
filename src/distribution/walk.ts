@@ -1,9 +1,7 @@
 import { Match, Role, Specification } from "../specification/specification";
 
 export interface WalkRole {
-  successorType: string;
   name: string;
-  predecessorType: string;
 }
 
 export interface WalkStep {
@@ -13,6 +11,7 @@ export interface WalkStep {
 }
 
 export interface Walk {
+  type: string;
   steps: WalkStep[];
 }
 
@@ -67,7 +66,7 @@ function walksFromMatches(matches: Match[], labels: LabeledTypes): LabeledWalks 
 
   // Get the continuation from the unknown. If no later match
   // wants to continue from this unknown, then we stop there.
-  const next = walks[match.unknown.name] || { steps: [] };
+  const next = walks[match.unknown.name] || { type: match.unknown.type, steps: [] };
 
   // Walk from the label to the unknown.
   const type = labels[condition.labelRight];
@@ -83,7 +82,7 @@ function walksFromMatches(matches: Match[], labels: LabeledTypes): LabeledWalks 
   }, {} as LabeledWalks);
 
   // We want to continue from the label.
-  const otherWalk = walks[condition.labelRight] || { steps: [] };
+  const otherWalk = walks[condition.labelRight];
   walks = {
     ...walks,
     [condition.labelRight]: mergeWalks(walk, otherWalk)
@@ -101,13 +100,12 @@ function walkRolesRight(roles: Role[], type: string, next: Walk): Walk {
   next = walkRolesRight(roles.slice(1), role.predecessorType, next);
 
   const walk: Walk = {
+    type: type,
     steps: [
       {
         direction: "predecessor",
         role: {
-          successorType: type,
-          name: role.name,
-          predecessorType: role.predecessorType
+          name: role.name
         },
         next: next
       }
@@ -124,13 +122,12 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
   const role = roles[0];
 
   const walk: Walk = {
+    type: role.predecessorType,
     steps: [
       {
         direction: "successor",
         role: {
-          successorType: type,
-          name: role.name,
-          predecessorType: role.predecessorType
+          name: role.name
         },
         next: next
       }
@@ -139,8 +136,15 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
   return walkRolesLeft(roles.slice(1), role.predecessorType, walk);
 }
 
-function mergeWalks(left: Walk, right: Walk): Walk {
+function mergeWalks(left: Walk, right: Walk | undefined): Walk {
+  if (!right) {
+    return left;
+  }
+  if (left.type !== right.type) {
+    throw new Error(`Cannot merge walks of different types: ${left.type} and ${right.type}`);
+  }
   return {
+    type: left.type,
     steps: [
       ...left.steps,
       ...right.steps

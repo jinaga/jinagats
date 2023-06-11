@@ -1,5 +1,5 @@
 import { Walk, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
-import { Company, Employee, Office, President, model } from "../model";
+import { Company, Employee, Office, President, model } from "../companyModel";
 
 describe("walkFromSpecification", () => {
   it("should generate a successor walk", () => {
@@ -138,9 +138,7 @@ class WalkBuilder {
       {
         direction: "successor",
         role: {
-          successorType,
-          name,
-          predecessorType: this.type
+          name
         },
         next: next.build()
       }
@@ -155,9 +153,7 @@ class WalkBuilder {
       {
         direction: "predecessor",
         role: {
-          successorType: this.type,
-          name,
-          predecessorType
+          name
         },
         next: next.build()
       }
@@ -166,6 +162,7 @@ class WalkBuilder {
 
   build(): Walk {
     return {
+      type: this.type,
       steps: this.steps
     };
   }

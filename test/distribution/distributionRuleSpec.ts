@@ -8,6 +8,10 @@ import { Blog, Post, Publish, model } from "../blogModel";
 describe("distribution rules", () => {
   const engine = givenDistributionEngine(r => r
     .everyone(model.given(Blog).match((blog, facts) =>
+      facts.ofType(Publish)
+        .join(publish => publish.post.blog, blog)
+    ))
+    .everyone(model.given(Blog).match((blog, facts) =>
       facts.ofType(Post)
         .join(post => post.blog, blog)
         .exists(post => facts.ofType(Publish)
@@ -45,6 +49,18 @@ describe("distribution rules", () => {
       outcome: "deny",
       reason: "An unauthenticated user cannot follow successor of Blog Post.blog without " +
         "the condition that Post Publish.post exists."
+    });
+  });
+
+  it("should allow public access to publications", async () => {
+    const specification = model.given(Blog).match((blog, facts) =>
+      facts.ofType(Publish)
+        .join(publish => publish.post.blog, blog)
+    ).specification;
+
+    const assessment = await engine.assess(specification, [blogReference], null);
+    expect(assessment).toStrictEqual({
+      outcome: "permit"
     });
   });
 

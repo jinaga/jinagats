@@ -1,5 +1,12 @@
 import { User } from "../model/user";
 import { SpecificationOf } from "../specification/model";
+import { Specification } from "../specification/specification";
+import { Walk } from "./walk";
+
+export interface DistributionRule {
+  walk: Walk;
+  user: Specification;
+}
 
 export class DistributionRules {
   with(rules: (r: DistributionRules) => DistributionRules): DistributionRules {
