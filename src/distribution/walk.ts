@@ -1,12 +1,8 @@
 import { Match, Role, Specification } from "../specification/specification";
 
-export interface WalkRole {
-  name: string;
-}
-
 export interface WalkStep {
   direction: "predecessor" | "successor";
-  role: WalkRole;
+  role: string;
   next: Walk;
 }
 
@@ -104,9 +100,7 @@ function walkRolesRight(roles: Role[], type: string, next: Walk): Walk {
     steps: [
       {
         direction: "predecessor",
-        role: {
-          name: role.name
-        },
+        role: role.name,
         next: next
       }
     ]
@@ -126,9 +120,7 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
     steps: [
       {
         direction: "successor",
-        role: {
-          name: role.name
-        },
+        role: role.name,
         next: next
       }
     ]

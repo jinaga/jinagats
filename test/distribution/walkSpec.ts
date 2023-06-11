@@ -130,31 +130,27 @@ class WalkBuilder {
     private steps: WalkStep[]
   ) { }
 
-  successor(name: string, successorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
+  successor(role: string, successorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
     const builder = new WalkBuilder(successorType, []);
     const next = then ? then(builder) : builder;
     return new WalkBuilder(this.type, [
       ...this.steps,
       {
         direction: "successor",
-        role: {
-          name
-        },
+        role: role,
         next: next.build()
       }
     ]);
   }
 
-  predecessor(name: string, predecessorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
+  predecessor(role: string, predecessorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
     const builder = new WalkBuilder(predecessorType, []);
     const next = then ? then(builder) : builder;
     return new WalkBuilder(this.type, [
       ...this.steps,
       {
         direction: "predecessor",
-        role: {
-          name
-        },
+        role: role,
         next: next.build()
       }
     ]);
