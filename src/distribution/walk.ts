@@ -53,8 +53,9 @@ function walksFromMatches(matches: Match[], labels: LabeledTypes): LabeledWalks 
   // Now focus on the current match.
   const match = matches[0];
 
-  if (match.conditions.length !== 1)
-    throw new Error("Match must have exactly one condition");
+  // TODO: Support multiple conditions.
+  if (match.conditions.length === 0)
+    throw new Error("Match must have at least one condition");
   const condition = match.conditions[0];
 
   if (condition.type !== "path")

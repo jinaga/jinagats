@@ -107,7 +107,7 @@ describe("distribution rules", () => {
 });
 
 function givenDistributionEngine(rules: (r: DistributionRules) => DistributionRules) {
-  const distributionRules = rules(new DistributionRules());
+  const distributionRules = rules(new DistributionRules([]));
   const memory = new MemoryStore();
   const engine = new DistributionEngine(distributionRules, memory);
   return engine;
