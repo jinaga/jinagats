@@ -15,7 +15,9 @@ export class DistributionEngine {
     private store: Storage
   ) { }
 
-  async assess(specification: Specification, user: FactReference | null): Promise<DistributionAssessment> {
-    throw new Error("Method not implemented.");
+  async assess(specification: Specification, start: FactReference[], user: FactReference | null): Promise<DistributionAssessment> {
+    return {
+      outcome: "permit"
+    };
   }
 }

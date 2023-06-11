@@ -22,6 +22,16 @@ export class Post {
   ) { }
 }
 
+export class Publish {
+  static Type = "Publish" as const;
+  type = Publish.Type;
+
+  constructor(
+    public post: Post,
+    public date: Date | string
+  ) { }
+}
+
 export const model = buildModel(b => b
   .type(User)
   .type(Blog, x => x
@@ -30,5 +40,8 @@ export const model = buildModel(b => b
   .type(Post, x => x
     .predecessor("blog", Blog)
     .predecessor("author", User)
+  )
+  .type(Publish, x => x
+    .predecessor("post", Post)
   )
 );
