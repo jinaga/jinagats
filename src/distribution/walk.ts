@@ -83,9 +83,10 @@ function walksFromMatches(matches: Match[], labels: LabeledTypes): LabeledWalks 
   }, {} as LabeledWalks);
 
   // We want to continue from the label.
+  const otherWalk = walks[condition.labelRight] || { steps: [] };
   walks = {
     ...walks,
-    [condition.labelRight]: walk
+    [condition.labelRight]: mergeWalks(walk, otherWalk)
   };
 
   return walks;
@@ -137,3 +138,13 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
   };
   return walkRolesLeft(roles.slice(1), role.predecessorType, walk);
 }
+
+function mergeWalks(left: Walk, right: Walk): Walk {
+  return {
+    steps: [
+      ...left.steps,
+      ...right.steps
+    ]
+  };
+}
+
