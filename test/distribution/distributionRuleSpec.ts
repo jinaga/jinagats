@@ -8,10 +8,6 @@ import { Blog, Post, Publish, model } from "../blogModel";
 describe("distribution rules", () => {
   const engine = givenDistributionEngine(r => r
     .everyone(model.given(Blog).match((blog, facts) =>
-      facts.ofType(Publish)
-        .join(publish => publish.post.blog, blog)
-    ))
-    .everyone(model.given(Blog).match((blog, facts) =>
       facts.ofType(Post)
         .join(post => post.blog, blog)
         .exists(post => facts.ofType(Publish)
@@ -47,7 +43,7 @@ describe("distribution rules", () => {
     const assessment = await engine.assess(specification, [blogReference], null);
     expect(assessment).toStrictEqual({
       outcome: "deny",
-      reason: "Must continue to follow successor of Post Publish.post.",
+      reason: "Cannot join to Post.blog without the condition that successor Publish exists.",
       depth: 1
     });
   });
@@ -100,8 +96,8 @@ describe("distribution rules", () => {
     const assessment = await engine.assess(specification, [blogReference], readerReference);
     expect(assessment).toStrictEqual({
       outcome: "deny",
-      reason: "This user cannot follow successor of Blog Post.blog without " +
-        "the condition that Post Publish.post exists."
+      reason: "Cannot join to Post.blog without the condition that successor Publish exists.",
+      depth: 1
     });
   });
 

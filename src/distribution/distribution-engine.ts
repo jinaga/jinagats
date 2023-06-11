@@ -105,7 +105,7 @@ function assessWalk(
           candidateStep.next.conditions
             .map(condition => condition.step.direction === "predecessor"
               ? `predecessor ${condition.step.role} ${condition.step.next.type} ${condition.exists ? "exists" : "not exists"}`
-              : `successor ${condition.step.next.type}.${condition.step.role} ${condition.exists ? "exists" : "not exists"}`)
+              : `successor ${condition.step.next.type} ${condition.exists ? "exists" : "not exists"}`)
             .join(" and ")
         )
         .join(", or ");
@@ -113,7 +113,7 @@ function assessWalk(
         {
           outcome: "deny",
           reason: `Cannot ${step} without the condition that ${conditions}.`,
-          depth: depth
+          depth: depth + 1
         }
       ];
     }
@@ -130,7 +130,7 @@ function assessWalk(
 function describeTargetStep(step: WalkStep, walk: Walk) {
   return step.direction === "predecessor"
     ? `follow predecessor ${walk.type}.${step.role} to ${step.next.type}`
-    : `follow successor of ${walk.type} ${step.next.type}.${step.role}`;
+    : `join to ${step.next.type}.${step.role}`;
 }
 
 function summarizeAssessments(assessments: DistributionAssessment[]): DistributionAssessment {
