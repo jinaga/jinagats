@@ -1,7 +1,7 @@
 import { Specification } from "../specification/specification";
 import { FactReference, Storage } from "../storage";
 import { DistributionRules } from "./distribution-rules";
-import { Walk, walkFromSpecification } from "./walk";
+import { Walk, WalkStep, walkFromSpecification } from "./walk";
 
 interface DistributionAssessmentPermit {
   outcome: "permit";
@@ -32,9 +32,11 @@ export class DistributionEngine {
     const targetWalk = walkFromSpecification(specification);
 
     // Assess the target walk against each distribution rule.
-    const assessments = this.distributionRules.rules.map(rule =>
-      assessWalk(targetWalk, rule.walk, 0)
-    );
+    const assessments = this.distributionRules.rules
+      .filter(rule => rule.user === null) // TODO: Support user-specific rules.
+      .map(rule =>
+        assessWalk(targetWalk, rule.walk, 0)
+      );
     return summarizeAssessments(assessments);
   }
 }
@@ -52,11 +54,23 @@ function assessWalk(
     };
   }
 
-  // If the target walk is empty, then we have reached the end of the walk.
+  // We have reached the end of the walk.
   if (targetWalk.steps.length === 0) {
-    return {
-      outcome: "permit"
-    };
+    // If the candidate walk ends here, then the walk is permitted.
+    if (candidateWalk.steps.length === 0) {
+      return {
+        outcome: "permit"
+      };
+    }
+    // Otherwise, the walk is not permitted.
+    else {
+      const step = describeTargetStep(candidateWalk.steps[0], candidateWalk);
+      return {
+        outcome: "deny",
+        reason: `Must continue to ${step}.`,
+        depth: depth
+      };
+    }
   }
 
   // Assess each step in the target walk.
@@ -69,13 +83,11 @@ function assessWalk(
 
     // If there are no candidate steps, then the walk is not permitted.
     if (candidateSteps.length === 0) {
-      const reason = targetStep.direction === "predecessor"
-        ? `Cannot follow predecessor ${targetWalk.type}.${targetStep.role} to ${targetStep.next.type}.`
-        : `Cannot follow successor of ${targetWalk.type} ${targetStep.next.type}.${targetStep.role}.`;
+      const step = describeTargetStep(targetStep, targetWalk);
       return [
         {
           outcome: "deny",
-          reason: reason,
+          reason: `Cannot ${step}.`,
           depth: depth
         }
       ];
@@ -87,9 +99,7 @@ function assessWalk(
 
     // If there are no candidate steps, then the walk is not permitted.
     if (candidateStepsMatchingCondition.length === 0) {
-      const reason = targetStep.direction === "predecessor"
-        ? `Cannot follow predecessor ${targetWalk.type}.${targetStep.role} to ${targetStep.next.type}`
-        : `Cannot follow successor of ${targetWalk.type} ${targetStep.next.type}.${targetStep.role}`;
+      const step = describeTargetStep(targetStep, targetWalk);
       const conditions = candidateSteps
         .map(candidateStep =>
           candidateStep.next.conditions
@@ -102,7 +112,7 @@ function assessWalk(
       return [
         {
           outcome: "deny",
-          reason: `${reason} without the condition that ${conditions}.`,
+          reason: `Cannot ${step} without the condition that ${conditions}.`,
           depth: depth
         }
       ];
@@ -115,6 +125,12 @@ function assessWalk(
   });
 
   return summarizeAssessments(assessments);
+}
+
+function describeTargetStep(step: WalkStep, walk: Walk) {
+  return step.direction === "predecessor"
+    ? `follow predecessor ${walk.type}.${step.role} to ${step.next.type}`
+    : `follow successor of ${walk.type} ${step.next.type}.${step.role}`;
 }
 
 function summarizeAssessments(assessments: DistributionAssessment[]): DistributionAssessment {

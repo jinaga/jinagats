@@ -47,8 +47,8 @@ describe("distribution rules", () => {
     const assessment = await engine.assess(specification, [blogReference], null);
     expect(assessment).toStrictEqual({
       outcome: "deny",
-      reason: "An unauthenticated user cannot follow successor of Blog Post.blog without " +
-        "the condition that Post Publish.post exists."
+      reason: "Must continue to follow successor of Post Publish.post.",
+      depth: 1
     });
   });
 
