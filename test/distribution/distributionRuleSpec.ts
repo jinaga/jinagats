@@ -52,7 +52,7 @@ describe("distribution rules", () => {
     });
   });
 
-  it("should allow public access to publications", async () => {
+  it("should permit public access to publications", async () => {
     const specification = model.given(Blog).match((blog, facts) =>
       facts.ofType(Publish)
         .join(publish => publish.post.blog, blog)
@@ -102,6 +102,33 @@ describe("distribution rules", () => {
       outcome: "deny",
       reason: "This user cannot follow successor of Blog Post.blog without " +
         "the condition that Post Publish.post exists."
+    });
+  });
+
+  it("should permit reader to access publications", async () => {
+    const specification = model.given(Blog).match((blog, facts) =>
+      facts.ofType(Publish)
+        .join(publish => publish.post.blog, blog)
+    ).specification;
+
+    const assessment = await engine.assess(specification, [blogReference], readerReference);
+    expect(assessment).toStrictEqual({
+      outcome: "permit"
+    });
+  });
+
+  it("should permit reader to access published posts", async () => {
+    const specification = model.given(Blog).match((blog, facts) =>
+      facts.ofType(Post)
+        .join(post => post.blog, blog)
+        .exists(post => facts.ofType(Publish)
+          .join(publish => publish.post, post)
+        )
+    ).specification;
+
+    const assessment = await engine.assess(specification, [blogReference], readerReference);
+    expect(assessment).toStrictEqual({
+      outcome: "permit"
     });
   });
 });
