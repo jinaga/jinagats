@@ -1,7 +1,7 @@
 import { Specification } from "../specification/specification";
 import { FactReference, Storage } from "../storage";
 import { DistributionRules } from "./distribution-rules";
-import { Walk, WalkStep, walkFromSpecification } from "./walk";
+import { Walk, WalkCondition, WalkStep, walkFromSpecification } from "./walk";
 
 interface DistributionAssessmentPermit {
   outcome: "permit";
@@ -93,9 +93,9 @@ function assessWalk(
       ];
     }
 
-    // Filter out candidate steps that have conditions.
+    // Filter out candidate steps that have conditions that are not enforced by the target walk.
     const candidateStepsMatchingCondition = candidateSteps.filter(candidateStep =>
-      candidateStep.next.conditions.length === 0);
+      !candidateStep.next.conditions.some(condition => !conditionIsEnforced(condition, targetStep.next)));
 
     // If there are no candidate steps, then the walk is not permitted.
     if (candidateStepsMatchingCondition.length === 0) {
@@ -125,6 +125,14 @@ function assessWalk(
   });
 
   return summarizeAssessments(assessments);
+}
+
+function conditionIsEnforced(condition: WalkCondition, targetWalk: Walk): boolean {
+  return targetWalk.conditions.some(targetCondition =>
+    targetCondition.step.direction === condition.step.direction &&
+    targetCondition.step.role === condition.step.role &&
+    targetCondition.step.next.type === condition.step.next.type &&
+    targetCondition.exists === condition.exists);
 }
 
 function describeTargetStep(step: WalkStep, walk: Walk) {
