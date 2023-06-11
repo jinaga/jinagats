@@ -14,10 +14,7 @@ export class DistributionRules {
   ) { }
 
   with(rules: (r: DistributionRules) => DistributionRules): DistributionRules {
-    return new DistributionRules([
-      ...this.rules,
-      ...rules(new DistributionRules([])).rules
-    ]);
+    return rules(this);
   }
 
   everyone<T, U>(specification: SpecificationOf<T, U>): DistributionRules {
