@@ -1,5 +1,5 @@
-import { Walk, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
-import { Company, Employee, Office, President, model } from "../companyModel";
+import { Walk, WalkCondition, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
+import { Company, Employee, Office, OfficeClosed, President, model } from "../companyModel";
 
 describe("walkFromSpecification", () => {
   it("should generate a successor walk", () => {
@@ -46,6 +46,25 @@ describe("walkFromSpecification", () => {
     const expected = walkFrom("Company")
       .successor("company", "Office", x => x
         .successor("office", "President")
+      )
+      .build();
+    expect(walk).toEqual(expected);
+  });
+
+  it("should generate a successor walk with an existential condition", () => {
+    const specification = model.given(Company).match((company, facts) =>
+      facts.ofType(Office)
+        .join(office => office.company, company)
+        .notExists(office => facts.ofType(OfficeClosed)
+          .join(officeClosed => officeClosed.office, office)
+        )
+    ).specification;
+
+    const walk = walkFromSpecification(specification);
+
+    const expected = walkFrom("Company")
+      .successor("company", "Office", x => x
+        .notExistsSuccessor("office", "Office.Closed")
       )
       .build();
     expect(walk).toEqual(expected);
@@ -127,11 +146,12 @@ describe("walkFromSpecification", () => {
 class WalkBuilder {
   constructor(
     private type: string,
-    private steps: WalkStep[]
+    private steps: WalkStep[],
+    private conditions: WalkCondition[]
   ) { }
 
   successor(role: string, successorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
-    const builder = new WalkBuilder(successorType, []);
+    const builder = new WalkBuilder(successorType, [], []);
     const next = then ? then(builder) : builder;
     return new WalkBuilder(this.type, [
       ...this.steps,
@@ -140,11 +160,11 @@ class WalkBuilder {
         role: role,
         next: next.build()
       }
-    ]);
+    ], this.conditions);
   }
 
   predecessor(role: string, predecessorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
-    const builder = new WalkBuilder(predecessorType, []);
+    const builder = new WalkBuilder(predecessorType, [], []);
     const next = then ? then(builder) : builder;
     return new WalkBuilder(this.type, [
       ...this.steps,
@@ -153,17 +173,50 @@ class WalkBuilder {
         role: role,
         next: next.build()
       }
+    ], this.conditions);
+  }
+
+  notExistsSuccessor(role: string, successorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
+    const builder = new WalkBuilder(successorType, [], []);
+    const next = then ? then(builder) : builder;
+    return new WalkBuilder(this.type, this.steps, [
+      ...this.conditions,
+      {
+        exists: false,
+        step: {
+          direction: "successor",
+          role: role,
+          next: next.build()
+        }
+      }
+    ]);
+  }
+
+  notExistsPredecessor(role: string, predecessorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
+    const builder = new WalkBuilder(predecessorType, [], []);
+    const next = then ? then(builder) : builder;
+    return new WalkBuilder(this.type, this.steps, [
+      ...this.conditions,
+      {
+        exists: false,
+        step: {
+          direction: "predecessor",
+          role: role,
+          next: next.build()
+        }
+      }
     ]);
   }
 
   build(): Walk {
     return {
       type: this.type,
-      steps: this.steps
+      steps: this.steps,
+      conditions: this.conditions
     };
   }
 }
 
 function walkFrom(type: string): WalkBuilder {
-  return new WalkBuilder(type, []);
+  return new WalkBuilder(type, [], []);
 }

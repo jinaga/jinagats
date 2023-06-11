@@ -69,17 +69,47 @@ function assessWalk(
 
     // If there are no candidate steps, then the walk is not permitted.
     if (candidateSteps.length === 0) {
+      const reason = targetStep.direction === "predecessor"
+        ? `Cannot follow predecessor ${targetWalk.type}.${targetStep.role} to ${targetStep.next.type}.`
+        : `Cannot follow successor of ${targetWalk.type} ${targetStep.next.type}.${targetStep.role}.`;
       return [
         {
           outcome: "deny",
-          reason: `Cannot follow ${targetStep.direction} of ${targetWalk.type} ${targetStep.next.type}.${targetStep.role}`,
+          reason: reason,
+          depth: depth
+        }
+      ];
+    }
+
+    // Filter out candidate steps that have conditions.
+    const candidateStepsMatchingCondition = candidateSteps.filter(candidateStep =>
+      candidateStep.next.conditions.length === 0);
+
+    // If there are no candidate steps, then the walk is not permitted.
+    if (candidateStepsMatchingCondition.length === 0) {
+      const reason = targetStep.direction === "predecessor"
+        ? `Cannot follow predecessor ${targetWalk.type}.${targetStep.role} to ${targetStep.next.type}`
+        : `Cannot follow successor of ${targetWalk.type} ${targetStep.next.type}.${targetStep.role}`;
+      const conditions = candidateSteps
+        .map(candidateStep =>
+          candidateStep.next.conditions
+            .map(condition => condition.step.direction === "predecessor"
+              ? `predecessor ${condition.step.role} ${condition.step.next.type} ${condition.exists ? "exists" : "not exists"}`
+              : `successor ${condition.step.next.type}.${condition.step.role} ${condition.exists ? "exists" : "not exists"}`)
+            .join(" and ")
+        )
+        .join(", or ");
+      return [
+        {
+          outcome: "deny",
+          reason: `${reason} without the condition that ${conditions}.`,
           depth: depth
         }
       ];
     }
 
     // Assess each candidate step.
-    return candidateSteps.map(candidateStep =>
+    return candidateStepsMatchingCondition.map(candidateStep =>
       assessWalk(targetStep.next, candidateStep.next, depth + 1)
     );
   });

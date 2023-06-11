@@ -22,6 +22,10 @@ export interface ExistentialCondition {
 }
 
 export type Condition = PathCondition | ExistentialCondition;
+export const isExistentialCondition = (c: Condition): c is ExistentialCondition =>
+    c.type === "existential";
+export const isPathCondition = (c: Condition): c is PathCondition =>
+    c.type === "path";
 
 export interface SpecificationProjection {
     type: "specification",

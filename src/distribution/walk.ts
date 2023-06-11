@@ -1,4 +1,4 @@
-import { Match, Role, Specification } from "../specification/specification";
+import { ExistentialCondition, Match, Role, Specification, isExistentialCondition, isPathCondition } from "../specification/specification";
 
 export interface WalkStep {
   direction: "predecessor" | "successor";
@@ -6,9 +6,15 @@ export interface WalkStep {
   next: Walk;
 }
 
+export interface WalkCondition {
+  exists: boolean;
+  step: WalkStep;
+}
+
 export interface Walk {
   type: string;
   steps: WalkStep[];
+  conditions: WalkCondition[];
 }
 
 interface LabeledWalks {
@@ -28,7 +34,7 @@ export function walkFromSpecification(specification: Specification): Walk {
     [label.name]: label.type
   });
 
-  const walk = walks[label.name] || { steps: [] };
+  const walk = walks[label.name];
   return walk;
 }
 
@@ -53,17 +59,26 @@ function walksFromMatches(matches: Match[], labels: LabeledTypes): LabeledWalks 
   // Now focus on the current match.
   const match = matches[0];
 
-  // TODO: Support multiple conditions.
-  if (match.conditions.length === 0)
-    throw new Error("Match must have at least one condition");
-  const condition = match.conditions[0];
+  const pathConditions = match.conditions.filter(isPathCondition);
 
-  if (condition.type !== "path")
-    throw new Error("Condition must be a path");
+  // TODO: Support multiple path conditions.
+  if (pathConditions.length !== 1)
+    throw new Error("Match must have exactly one path condition");
+  const condition = pathConditions[0];
 
   // Get the continuation from the unknown. If no later match
   // wants to continue from this unknown, then we stop there.
-  const next = walks[match.unknown.name] || { type: match.unknown.type, steps: [] };
+  const initialWalk = walks[match.unknown.name] || {
+    type: match.unknown.type,
+    steps: [],
+    conditions: []
+  };
+
+  // Apply existential conditions to the continuation.
+  const existentialConditions = match.conditions.filter(isExistentialCondition);
+  const next = existentialConditions.reduce((walk, condition) => {
+    return walkFromExistentialCondition(walk, condition, match.unknown.name, labels);
+  }, initialWalk);
 
   // Walk from the label to the unknown.
   const type = labels[condition.labelRight];
@@ -104,7 +119,8 @@ function walkRolesRight(roles: Role[], type: string, next: Walk): Walk {
         role: role.name,
         next: next
       }
-    ]
+    ],
+    conditions: []
   };
   return walk;
 }
@@ -124,9 +140,30 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
         role: role.name,
         next: next
       }
-    ]
+    ],
+    conditions: []
   };
   return walkRolesLeft(roles.slice(1), role.predecessorType, walk);
+}
+
+function walkFromExistentialCondition(walk: Walk, condition: ExistentialCondition, label: string, labels: LabeledTypes): Walk {
+  const childWalks = walksFromMatches(condition.matches, labels);
+  const childWalk = childWalks[label];
+  if (!childWalk) {
+    throw new Error(`Could not find walk for label ${label}`);
+  }
+  return {
+    type: walk.type,
+    steps: walk.steps,
+    conditions: [
+      ...walk.conditions,
+      ...childWalk.conditions,
+      ...childWalk.steps.map(step => ({
+        exists: condition.exists,
+        step: step
+      })),
+    ]
+  };
 }
 
 function mergeWalks(left: Walk, right: Walk | undefined): Walk {
@@ -141,6 +178,10 @@ function mergeWalks(left: Walk, right: Walk | undefined): Walk {
     steps: [
       ...left.steps,
       ...right.steps
+    ],
+    conditions: [
+      ...left.conditions,
+      ...right.conditions
     ]
   };
 }
