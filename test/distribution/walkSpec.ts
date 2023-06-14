@@ -1,4 +1,4 @@
-import { Walk, WalkCondition, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
+import { Walk, WalkStep, walkFromSpecification } from "../../src/distribution/walk";
 import { Company, Employee, Office, OfficeClosed, President, model } from "../companyModel";
 
 describe("walkFromSpecification", () => {
@@ -147,7 +147,7 @@ class WalkBuilder {
   constructor(
     private type: string,
     private steps: WalkStep[],
-    private conditions: WalkCondition[]
+    private conditions: WalkStep[]
   ) { }
 
   successor(role: string, successorType: string, then?: (builder: WalkBuilder) => WalkBuilder): WalkBuilder {
@@ -182,12 +182,9 @@ class WalkBuilder {
     return new WalkBuilder(this.type, this.steps, [
       ...this.conditions,
       {
-        exists: false,
-        step: {
-          direction: "successor",
-          role: role,
-          next: next.build()
-        }
+        direction: "successor",
+        role: role,
+        next: next.build()
       }
     ]);
   }
@@ -198,12 +195,9 @@ class WalkBuilder {
     return new WalkBuilder(this.type, this.steps, [
       ...this.conditions,
       {
-        exists: false,
-        step: {
-          direction: "predecessor",
-          role: role,
-          next: next.build()
-        }
+        direction: "predecessor",
+        role: role,
+        next: next.build()
       }
     ]);
   }

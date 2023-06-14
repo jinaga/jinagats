@@ -6,15 +6,10 @@ export interface WalkStep {
   next: Walk;
 }
 
-export interface WalkCondition {
-  exists: boolean;
-  step: WalkStep;
-}
-
 export interface Walk {
   type: string;
   steps: WalkStep[];
-  conditions: WalkCondition[];
+  conditions: WalkStep[];
 }
 
 interface LabeledWalks {
@@ -147,21 +142,23 @@ function walkRolesLeft(roles: Role[], type: string, next: Walk): Walk {
 }
 
 function walkFromExistentialCondition(walk: Walk, condition: ExistentialCondition, label: string, labels: LabeledTypes): Walk {
+  if (condition.exists) {
+    throw new Error("Positive existential conditions are not supported");
+  }
   const childWalks = walksFromMatches(condition.matches, labels);
   const childWalk = childWalks[label];
   if (!childWalk) {
     throw new Error(`Could not find walk for label ${label}`);
+  }
+  if (childWalk.conditions.length !== 0) {
+    throw new Error("Existential conditions cannot themselves have conditions");
   }
   return {
     type: walk.type,
     steps: walk.steps,
     conditions: [
       ...walk.conditions,
-      ...childWalk.conditions,
-      ...childWalk.steps.map(step => ({
-        exists: condition.exists,
-        step: step
-      })),
+      ...childWalk.steps,
     ]
   };
 }

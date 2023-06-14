@@ -1,7 +1,7 @@
 import { Specification } from "../specification/specification";
 import { FactReference, Storage } from "../storage";
 import { DistributionRules } from "./distribution-rules";
-import { Walk, WalkCondition, WalkStep, walkFromSpecification } from "./walk";
+import { Walk, WalkStep, walkFromSpecification } from "./walk";
 
 interface DistributionAssessmentPermit {
   outcome: "permit";
@@ -94,25 +94,15 @@ function assessWalk(
     }
 
     // Filter out candidate steps that have conditions that are not enforced by the target walk.
-    const candidateStepsMatchingCondition = candidateSteps.filter(candidateStep =>
-      !candidateStep.next.conditions.some(condition => !conditionIsEnforced(condition, targetStep.next)));
+    const candidateStepsMatchingCondition = candidateSteps;
 
     // If there are no candidate steps, then the walk is not permitted.
     if (candidateStepsMatchingCondition.length === 0) {
       const step = describeTargetStep(targetStep, targetWalk);
-      const conditions = candidateSteps
-        .map(candidateStep =>
-          candidateStep.next.conditions
-            .map(condition => condition.step.direction === "predecessor"
-              ? `predecessor ${condition.step.role} ${condition.step.next.type} ${condition.exists ? "exists" : "not exists"}`
-              : `successor ${condition.step.next.type} ${condition.exists ? "exists" : "not exists"}`)
-            .join(" and ")
-        )
-        .join(", or ");
       return [
         {
           outcome: "deny",
-          reason: `Cannot ${step} without the condition that ${conditions}.`,
+          reason: `Cannot ${step} without the condition that ~~~.`,
           depth: depth + 1
         }
       ];
@@ -125,14 +115,6 @@ function assessWalk(
   });
 
   return summarizeAssessments(assessments);
-}
-
-function conditionIsEnforced(condition: WalkCondition, targetWalk: Walk): boolean {
-  return targetWalk.conditions.some(targetCondition =>
-    targetCondition.step.direction === condition.step.direction &&
-    targetCondition.step.role === condition.step.role &&
-    targetCondition.step.next.type === condition.step.next.type &&
-    targetCondition.exists === condition.exists);
 }
 
 function describeTargetStep(step: WalkStep, walk: Walk) {
